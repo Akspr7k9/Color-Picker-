@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Advanced Color Picker</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            margin: 0;
+            padding: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+        }
+        .picker-container {
+            max-width: 420px;
+            padding: 28px 26px 22px 26px;
+            background: rgba(255,255,255,0.95);
+            border-radius: 18px;
+            box-shadow: 0 6px 24px rgba(60,80,150,0.08), 0 1.5px 4px rgba(60,80,150,0.04);
+            border: 1px solid #e1e6ef;
+            transition: box-shadow .2s;
+        }
+        .picker-container:hover {
+            box-shadow: 0 12px 36px rgba(60,80,150,0.13), 0 3px 8px rgba(60,80,150,0.09);
+        }
+        label {
+            font-size: 1.15em;
+            margin-bottom: 10px;
+            display: block;
+            font-weight: 500;
+            color: #425072;
+        }
+        input[type="color"] {
+            width: 100%;
+            height: 48px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            border-radius: 6px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 6px rgba(60,80,150,0.06);
+        }
+        .color-box {
+            width: 110px;
+            height: 110px;
+            border-radius: 9px;
+            border: 2.5px solid #d4d9e6;
+            margin: 0 auto 18px auto;
+            box-shadow: 0 2px 8px rgba(60,80,150,0.07);
+            transition: border-color .15s;
+        }
+        .color-values {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+            margin-top: 14px;
+            font-size: 1.07em;
+        }
+        .color-value {
+            padding: 7px 0;
+            border-bottom: 1px dashed #e1e6ef;
+        }
+        .color-value:last-child {
+            border-bottom: none;
+        }
+        .color-label {
+            font-weight: 500;
+            color: #425072;
+        }
+        .value {
+            margin-left: 8px;
+            font-family: monospace;
+            color: #2a6b8c;
+            font-size: 0.98em;
+            letter-spacing: 0.5px;
+        }
+        @media(max-width: 520px) {
+            body {
+                padding: 0;
+            }
+            .picker-container {
+                max-width: 98vw;
+                padding: 16px 8px 16px 8px;
+            }
+            .color-box {
+                width: 80px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="picker-container">
+        <label for="colorInput">🎨 Pick a color:</label>
+        <input type="color" id="colorInput" value="#3498db">
+        <div class="color-box" id="colorBox"></div>
+        <div class="color-values">
+            <div class="color-value"><span class="color-label">HEX:</span> <span class="value" id="hexValue">#3498db</span></div>
+            <div class="color-value"><span class="color-label">RGB:</span> <span class="value" id="rgbValue"></span></div>
+            <div class="color-value"><span class="color-label">CMYK:</span> <span class="value" id="cmykValue"></span></div>
+            <div class="color-value"><span class="color-label">HSV:</span> <span class="value" id="hsvValue"></span></div>
+            <div class="color-value"><span class="color-label">HSL:</span> <span class="value" id="hslValue"></span></div>
+        </div>
+    </div>
+    <script>
+        const colorInput = document.getElementById('colorInput');
+        const colorBox = document.getElementById('colorBox');
+        const hexValue = document.getElementById('hexValue');
+        const rgbValue = document.getElementById('rgbValue');
+        const cmykValue = document.getElementById('cmykValue');
+        const hsvValue = document.getElementById('hsvValue');
+        const hslValue = document.getElementById('hslValue');
+
+        function hexToRgb(hex) {
+            hex = hex.replace(/^#/, '');
+            if (hex.length === 3) hex = hex.split('').map(x=>x+x).join('');
+            const num = parseInt(hex, 16);
+            return {
+                r: (num >> 16) & 255,
+                g: (num >> 8) & 255,
+                b: num & 255
+            };
+        }
+
+        function rgbToCmyk(r, g, b) {
+            if (r===0 && g===0 && b===0) return {c:0,m:0,y:0,k:100};
+            let c = 1 - (r/255);
+            let m = 1 - (g/255);
+            let y = 1 - (b/255);
+            let k = Math.min(c, m, y);
+            c = ((c-k)/(1-k)) * 100;
+            m = ((m-k)/(1-k)) * 100;
+            y = ((y-k)/(1-k)) * 100;
+            k = k * 100;
+            return {
+                c: Math.round(c),
+                m: Math.round(m),
+                y: Math.round(y),
+                k: Math.round(k)
+            };
+        }
+
+        function rgbToHsv(r, g, b) {
+            r /= 255; g /= 255; b /= 255;
+            let max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, v = max;
+            let d = max - min;
+            s = max === 0 ? 0 : d / max;
+            if (max === min) {
+                h = 0;
+            } else {
+                switch(max){
+                    case r: h = (g-b)/d + (g < b ? 6 : 0); break;
+                    case g: h = (b-r)/d + 2; break;
+                    case b: h = (r-g)/d + 4; break;
+                }
+                h /= 6;
+            }
+            return {
+                h: Math.round(h*360),
+                s: Math.round(s*100),
+                v: Math.round(v*100)
+            };
+        }
+
+        function rgbToHsl(r,g,b){
+            r /= 255; g /= 255; b /= 255;
+            let max = Math.max(r, g, b), min = Math.min(r, g, b);
+            let h, s, l = (max + min) / 2;
+            if(max === min){
+                h = s = 0;
+            } else {
+                let d = max - min;
+                s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+                switch(max){
+                    case r: h = (g-b)/d + (g < b ? 6 : 0); break;
+                    case g: h = (b-r)/d + 2; break;
+                    case b: h = (r-g)/d + 4; break;
+                }
+                h /= 6;
+            }
+            return {
+                h: Math.round(h*360),
+                s: Math.round(s*100),
+                l: Math.round(l*100)
+            };
+        }
+
+        function updateColor() {
+            const hex = colorInput.value;
+            hexValue.textContent = hex;
+            colorBox.style.backgroundColor = hex;
+            colorBox.style.borderColor = hex;
+
+            const {r,g,b} = hexToRgb(hex);
+
+            rgbValue.textContent = `rgb(${r}, ${g}, ${b})`;
+
+            const cmyk = rgbToCmyk(r,g,b);
+            cmykValue.textContent = `cmyk(${cmyk.c}%, ${cmyk.m}%, ${cmyk.y}%, ${cmyk.k}%)`;
+
+            const hsv = rgbToHsv(r,g,b);
+            hsvValue.textContent = `hsv(${hsv.h}°, ${hsv.s}%, ${hsv.v}%)`;
+
+            const hsl = rgbToHsl(r,g,b);
+            hslValue.textContent = `hsl(${hsl.h}°, ${hsl.s}%, ${hsl.l}%)`;
+        }
+
+        colorInput.addEventListener('input', updateColor);
+
+        // Initialize on load
+        updateColor();
+    </script>
+</body>
+</html>
